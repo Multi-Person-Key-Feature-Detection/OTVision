@@ -22,10 +22,7 @@ from urllib.request import urlretrieve
 from zipfile import ZipFile
 from helpers.files import remove_dir
 
-ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2020-11-14-12-28/ffmpeg-n4.3.1-25-g1936413eda-win64-gpl-4.3.zip"
-ffmpeg_zip = "./ffmpeg.zip"
-ffmpeg_dir = "./ffmpeg"
-ffmpeg_exe = "./ffmpeg.exe"
+ffmpeg_path = "./ffmpeg.exe"
 
 
 def convert(
@@ -35,14 +32,9 @@ def convert(
     outputpath: str = None,
     overwrite: bool = False,
 ):
-    # check if ffmpeg exists
-    try:
-        msg = subprocess.call("ffmpeg.exe")
-    except FileNotFoundError:
-        # download ffmpeg
-        print("ffmpeg nicht da")
-        download_ffmpeg()
+    check_ffmpeg(ffmpeg_path)
 
+    
     if Path(path).is_dir:
         pass
     elif Path(path).is_file:
@@ -58,7 +50,27 @@ def convert(
     # c. overwrite file if overwrite
 
 
-def download_ffmpeg():
+def check_ffmpeg(ffmpeg_path: str):
+    """Checks, if ffmpeg is available, otherwise downloads it.
+
+    Args:
+        ffmpeg_path (str): path, where to save ffmpeg
+    """
+    try:
+        subprocess.call(ffmpeg_path)
+    except FileNotFoundError:
+        download_ffmpeg(ffmpeg_path)
+
+
+def download_ffmpeg(ffmpeg_path: str):
+    """Download ffmpeg to a specific path.
+
+    Args:
+        ffmpeg_path (str): path to ffmpeg.exe
+    """
+    ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2020-11-14-12-28/ffmpeg-n4.3.1-25-g1936413eda-win64-gpl-4.3.zip"
+    ffmpeg_zip = ffmpeg_path + "_ffmpeg.zip"
+    ffmpeg_dir = ffmpeg_path + "./ffmpeg"
     try:
         urlretrieve(ffmpeg_url, ffmpeg_zip)
     except Exception as inst:
@@ -68,16 +80,24 @@ def download_ffmpeg():
         with ZipFile(ffmpeg_zip, "r") as zip:
             zip.extractall(ffmpeg_dir)
         for exe in Path(ffmpeg_dir).glob("**/ffmpeg.exe"):
-            exe.replace(ffmpeg_exe)
+            exe.replace(ffmpeg_path)
         remove_dir(ffmpeg_dir)
         Path(ffmpeg_zip).unlink()
 
 
 def get_fps(file: str, fps: int):
-    fps = 20
+    """Look for pattern "fps" in file and extract framerate. Otherwise returns fps.
+
+    Args:
+        file (str): filename
+        fps (int): fps used if "fps" is not in filename
+
+    Returns:
+        int: fps
+    """
+
     if "fps" in file:
         for filepart in file.split("_"):
             if "fps" in filepart:
                 fps = filepart.split("fps")[0]
-    print(fps)
     return fps
