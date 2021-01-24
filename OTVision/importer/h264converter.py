@@ -34,7 +34,6 @@ def convert(
 ):
     check_ffmpeg(ffmpeg_path)
 
-    
     if Path(path).is_dir:
         pass
     elif Path(path).is_file:
