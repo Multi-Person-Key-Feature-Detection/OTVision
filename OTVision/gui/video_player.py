@@ -7,6 +7,8 @@ import cv2
 import decord as de
 from PIL import Image as PIL_Image
 from PIL import ImageTk as PIL_ImageTk
+import base64
+from io import BytesIO
 import PySimpleGUI as sg
 from datetime import datetime as dt
 import pause
@@ -171,13 +173,15 @@ def write_frame_to_graph(graph_video, frame):
     img_np = frame.asnumpy()
     print("cv2.imencode: " + str(time_delta()))
     # imgbytes = img_np.tobytes()
-    imgbytes = PIL_Image.fromarray(img_np)
-    imgbytes = PIL_ImageTk.BitmapImage(img)
+    img_pil = PIL_Image.fromarray(img_np)
+    buff = BytesIO()
+    img_pil.save(buff, format="JPEG")
+    img_string = base64.b64encode(buff.getvalue()).decode("utf-8")
     print("img.tobytes: " + str(time_delta()))
 
     graph_video.delete_figure("all")  # delete previous image
     print("graph_video.delete_figure: " + str(time_delta()))
-    i = graph_video.draw_image(data=imgbytes, location=(0, 0))  # draw new image
+    i = graph_video.draw_image(data=img_string, location=(0, 0))  # draw new image
     graph_video.send_figure_to_back(i)
     # Draw frame option (doesnt work)
     """graph_video.draw_image(data=frame, location=(0, 0))  # draw new image"""
