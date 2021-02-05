@@ -1,7 +1,10 @@
+from inspect import currentframe
 import os
+from threading import current_thread
 from tkinter import PhotoImage
 from PySimpleGUI.PySimpleGUI import Image
 import cv2
+import decord as de
 from PIL import Image as PIL_Image
 from PIL import ImageTk as PIL_ImageTk
 import PySimpleGUI as sg
@@ -142,7 +145,7 @@ def draw_shapes(shapes, window):
 def write_frame_to_graph(graph_video, frame):
     # write_frame_to_graph(frame)
     print("Start: " + str(time_delta()))
-    frame = cv2.resize(frame, (shown_video_width, shown_video_height))
+    # ! Resize frame to (shown_video_width, shown_video_height) using decord
     print("cv2.resize: " + str(time_delta()))
 
     # PIL option
@@ -165,15 +168,15 @@ def write_frame_to_graph(graph_video, frame):
 
     # cv2.imencode png or jpg
     # imgbytes = cv2.imencode('.jpeg', frame)[1].tobytes()
-    img = cv2.imencode(".png", frame)[1]
+    # img_np = frame.asnumpy()
     print("cv2.imencode: " + str(time_delta()))
-    imgbytes = img.tobytes()
+    # imgbytes = img_np.tobytes()
     print("img.tobytes: " + str(time_delta()))
 
     graph_video.delete_figure("all")  # delete previous image
     print("graph_video.delete_figure: " + str(time_delta()))
-    i = graph_video.draw_image(data=imgbytes, location=(0, 0))  # draw new image
-    graph_video.send_figure_to_back(i)
+    i = graph_video.draw_image(data=frame, location=(0, 0))  # draw new image
+    # graph_video.send_figure_to_back(i)
     # Draw frame option (doesnt work)
     """graph_video.draw_image(data=frame, location=(0, 0))  # draw new image"""
     # graph_video.TKCanvas.tag_lower(a_id)  # move image to bottom
@@ -252,11 +255,12 @@ def layout_videoplayer(last_video_path=LAST_VIDEO_PATH, widt_col_1=WIDTH_COL1):
 
 
 def intialize_video_settings():
-    global video_loaded, play_video, ret, frame, video, first_loop
+    global video_loaded, play_video, ret, frame, video, first_loop, frame_video
     global timestamp_last_frame, playback_speed_factor
     # Initialize own custom video settings
     video_loaded = False
     play_video = False
+    frame_video = 0
     ret = None
     frame = None
     video = None
@@ -277,8 +281,8 @@ def print_shown_video_size(shown_video_width, shown_video_height):
 def update_graph_size(graph_video, graph_video_zoom=100, video=None, frame=None):
     global shown_video_height, shown_video_width
     if video is not None:
-        video_width = video.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
-        video_height = video.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
+        video_width = video[0].shape[2]  # ? float?
+        video_height = video[0].shape[1]  # ? float?
         video_ratio = video_width / video_height
     else:
         video_ratio = 4 / 3
@@ -298,45 +302,50 @@ def update_graph_size(graph_video, graph_video_zoom=100, video=None, frame=None)
 def load_video(window, values):
     global video, video_loaded, play_video, a_id, last_frame
     if values["-input_video-"] != "":
-        try:
-            # Get video and properties with opencv
-            video = cv2.VideoCapture(values["-input_video-"])
-            video_total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-            ret, frame = video.read()
-            last_frame = frame
+        # try:
+        # Get video and properties with opencv
+        # video = cv2.VideoCapture(values["-input_video-"])
+        # video_total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+        # ret, frame = video.read()
+        video = de.VideoReader(values["-input_video-"])  # width=640, height=480
+        video_total_frames = len(video)
+        frame = video[0]
+        current_frame = 0
+        ret = True
+        last_frame = frame
 
-            # Update gui elements
-            update_graph_size(
-                window["-graph_video-"],
-                values["-slider_graph_video_size-"],
-                video,
-                frame,
-            )
-            write_frame_to_graph(window["-graph_video-"], frame)
-            window["-slider_video-"].update(
-                range=(0, video_total_frames)
-            )  # https://github.com/PySimpleGUI/PySimpleGUI/issues/2442
+        # Update gui elements
+        update_graph_size(
+            window["-graph_video-"],
+            values["-slider_graph_video_size-"],
+            video,
+            frame,
+        )
+        write_frame_to_graph(window["-graph_video-"], frame)
+        window["-slider_video-"].update(
+            range=(0, video_total_frames)
+        )  # https://github.com/PySimpleGUI/PySimpleGUI/issues/2442
 
-            # Save video path to imput and user settings otvision_user_settings file
-            window["-input_video-"].update(values["-input_video-"])
-            # otvision_user_settings['PATHS']['LAST_VIDEO_PATH'] = values['-input_video-']
-            # config.write_user_settings(otvision_user_settings)
+        # Save video path to imput and user settings otvision_user_settings file
+        window["-input_video-"].update(values["-input_video-"])
+        # otvision_user_settings['PATHS']['LAST_VIDEO_PATH'] = values['-input_video-']
+        # config.write_user_settings(otvision_user_settings)
 
-            # Set variables
-            video_loaded = True
-            # use_initial_videopath = False
-            a_id = None
-            play_video = False
-        except:
-            video = None
-            ret = None
-            print("Video from path in input field could not be loaded!")
+        # Set variables
+        video_loaded = True
+        # use_initial_videopath = False
+        a_id = None
+        play_video = False
+        # except:
+        #     video = None
+        #     ret = None
+        #     print("Video from path in input field could not be loaded!")
 
-        return ret
+        return ret, current_frame
 
 
 def events_videoplayer(window, event, values):  # , shapes = None
-    global first_loop, last_frame, play_video, timestamp_last_frame
+    global first_loop, last_frame, play_video, timestamp_last_frame, frame_video
     if first_loop:
         update_graph_size(window["-graph_video-"])
         last_frame = None
@@ -350,7 +359,7 @@ def events_videoplayer(window, event, values):  # , shapes = None
             last_frame,
         )
     if event == "-input_video-":  # If user loads new video
-        ret = load_video(window, values)
+        ret, frame_video = load_video(window, values)
     elif video_loaded and video is not None:
         # ! Writing image every iteration costs too much CPU!
         if event == "-slider_graph_video_size-":
@@ -362,7 +371,7 @@ def events_videoplayer(window, event, values):  # , shapes = None
             )
 
         # Get current frame and slider position
-        frame_video = video.get(cv2.CAP_PROP_POS_FRAMES)
+        # frame_video  # ! How to get current frame number from decord?
         frame_slider = values["-slider_video-"] + 1
 
         # Get state of video player
@@ -384,16 +393,16 @@ def events_videoplayer(window, event, values):  # , shapes = None
                 frame_video = frame_slider  # int(values['-slider_video-']) + 1
                 set_frame_manually = False
             elif play_video:
-                video_fps = video.get(cv2.CAP_PROP_FPS)
+                video_fps = 20  # ! How to get video fps from decord?
                 delta_frames = video_fps / PLAYER_FPS
                 if playback_speed_factor < 0 or playback_speed_factor > 1:
                     delta_frames = delta_frames * playback_speed_factor
                 frame_video = frame_slider = frame_video + delta_frames
-            video.set(cv2.CAP_PROP_POS_FRAMES, frame_video - 1)
-            window["-slider_video-"].update(frame_slider - 1)
+            window["-slider_video-"].update(frame_slider - 1)  # ? Really - 1?
 
             # Retrieve current frame from video using opencv cap.read()
-            ret, frame = video.read()
+            frame = video[int(frame_video)]
+            ret = True
             last_frame = frame
             if ret:
                 # Define waiting time to show frame for displaying in correct speed
