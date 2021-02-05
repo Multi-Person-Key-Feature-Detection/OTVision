@@ -168,15 +168,17 @@ def write_frame_to_graph(graph_video, frame):
 
     # cv2.imencode png or jpg
     # imgbytes = cv2.imencode('.jpeg', frame)[1].tobytes()
-    # img_np = frame.asnumpy()
+    img_np = frame.asnumpy()
     print("cv2.imencode: " + str(time_delta()))
     # imgbytes = img_np.tobytes()
+    imgbytes = PIL_Image.fromarray(img_np)
+    imgbytes = PIL_ImageTk.BitmapImage(img)
     print("img.tobytes: " + str(time_delta()))
 
     graph_video.delete_figure("all")  # delete previous image
     print("graph_video.delete_figure: " + str(time_delta()))
-    i = graph_video.draw_image(data=frame, location=(0, 0))  # draw new image
-    # graph_video.send_figure_to_back(i)
+    i = graph_video.draw_image(data=imgbytes, location=(0, 0))  # draw new image
+    graph_video.send_figure_to_back(i)
     # Draw frame option (doesnt work)
     """graph_video.draw_image(data=frame, location=(0, 0))  # draw new image"""
     # graph_video.TKCanvas.tag_lower(a_id)  # move image to bottom
