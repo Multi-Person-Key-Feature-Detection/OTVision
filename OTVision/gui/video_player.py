@@ -169,20 +169,20 @@ def write_frame_to_graph(graph_video, frame):
     # print('PIL_ImageTk.BitmapImage: ' + str(now_msec()))
 
     # cv2.imencode png or jpg
-    # imgbytes = cv2.imencode('.jpeg', frame)[1].tobytes()
-    img_np = frame.asnumpy()
+    imgbytes = cv2.imencode(".png", frame)[1].tobytes()
+    # img_np = frame.asnumpy()
     print("cv2.imencode: " + str(time_delta()))
     # imgbytes = img_np.tobytes()
-    img_pil = PIL_Image.fromarray(img_np)
-    buff = BytesIO()
-    img_pil.save(buff, format="JPEG")
-    img_string = base64.b64encode(buff.getvalue()).decode("utf-8")
+    # img_pil = PIL_Image.fromarray(img_np)
+    # buff = BytesIO()
+    # img_pil.save(buff, format="JPEG")
+    # img_string = base64.b64encode(buff.getvalue()).decode("utf-8")
     print("img.tobytes: " + str(time_delta()))
 
     graph_video.delete_figure("all")  # delete previous image
     print("graph_video.delete_figure: " + str(time_delta()))
-    i = graph_video.draw_image(data=img_string, location=(0, 0))  # draw new image
-    graph_video.send_figure_to_back(i)
+    i = graph_video.draw_image(data=imgbytes, location=(0, 0))  # draw new image
+    # graph_video.send_figure_to_back(i)
     # Draw frame option (doesnt work)
     """graph_video.draw_image(data=frame, location=(0, 0))  # draw new image"""
     # graph_video.TKCanvas.tag_lower(a_id)  # move image to bottom
@@ -285,10 +285,11 @@ def print_shown_video_size(shown_video_width, shown_video_height):
 
 
 def update_graph_size(graph_video, graph_video_zoom=100, video=None, frame=None):
+    # ! Is not working properly
     global shown_video_height, shown_video_width
     if video is not None:
-        video_width = video[0].shape[2]  # ? float?
-        video_height = video[0].shape[1]  # ? float?
+        video_width = video.get(3)  # ? float?
+        video_height = video.get(4)  # ? float?
         video_ratio = video_width / video_height
     else:
         video_ratio = 4 / 3
@@ -310,12 +311,12 @@ def load_video(window, values):
     if values["-input_video-"] != "":
         # try:
         # Get video and properties with opencv
-        # video = cv2.VideoCapture(values["-input_video-"])
-        # video_total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-        # ret, frame = video.read()
-        video = de.VideoReader(values["-input_video-"])  # width=640, height=480
-        video_total_frames = len(video)
-        frame = video[0]
+        video = cv2.VideoCapture(values["-input_video-"])
+        video_total_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+        ret, frame = video.read()
+        # video = de.VideoReader(values["-input_video-"])  # width=640, height=480
+        # video_total_frames = len(video)
+        # frame = video[0]
         current_frame = 0
         ret = True
         last_frame = frame
@@ -397,26 +398,25 @@ def events_videoplayer(window, event, values):  # , shapes = None
             # Calculate next frame
             if set_frame_manually:
                 frame_video = frame_slider  # int(values['-slider_video-']) + 1
+                # frame = video[int(frame_video)]
+                video.set(1, frame_video - 1)
+                ret, frame = video.read()
                 set_frame_manually = False
             elif play_video:
                 video_fps = 20  # ! How to get video fps from decord?
-                delta_frames = video_fps / PLAYER_FPS
-                if playback_speed_factor < 0 or playback_speed_factor > 1:
-                    delta_frames = delta_frames * playback_speed_factor
-                frame_video = frame_slider = frame_video + delta_frames
+                ret, frame = video.read()
+                frame_video += 1
+                frame_slider = frame_video
             window["-slider_video-"].update(frame_slider - 1)  # ? Really - 1?
 
             # Retrieve current frame from video using opencv cap.read()
-            frame = video[int(frame_video)]
-            ret = True
+            # frame = video[int(frame_video)]
+            # ret = True
             last_frame = frame
             if ret:
                 # Define waiting time to show frame for displaying in correct speed
                 if play_video:
-                    if playback_speed_factor > 0 and playback_speed_factor < 1:
-                        time_between_frames = 1 / (PLAYER_FPS * playback_speed_factor)
-                    else:
-                        time_between_frames = 1 / PLAYER_FPS
+                    time_between_frames = 1 / video_fps
                     if timestamp_last_frame is not None:
                         timestamp_current_frame = (
                             timestamp_last_frame + time_between_frames
