@@ -39,3 +39,7 @@ OTVision/helpers/__pycache__/config.cpython-37.pyc
 .vscode/settings.json
 yolov5l.pt
 yolov5s.pt
+yolov5x.pt
+OTVision/detect/__pycache__/__init__.cpython-38.pyc
+OTVision/detect/__pycache__/detect.cpython-38.pyc
+OTVision/detect/__pycache__/yolo.cpython-38.pyc
