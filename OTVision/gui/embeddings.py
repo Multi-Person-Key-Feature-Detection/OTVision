@@ -35,15 +35,15 @@ class OTGuiElement:
         print("Values:" + str(values))
 
 
-class FoldersAndFiles(OTGuiElement):
+class OTFoldersAndFiles(OTGuiElement):
     def __init__(self, title):
         super().__init__(title=title)
     # TODO
 
 
-class VideoPlayer(OTGuiElement):
+class OTVideoPlayer(OTGuiElement):
     """Creates a video player object. After creating a new instance with
-    <instance> = VideoPlayer() use "<instance>.frame" to embed instance of VideoPlayer
+    <instance> = OTVideoPlayer() use "<instance>.frame" to embed instance of VideoPlayer
     in the layout of your window and "<instance>.events" to interact with VideoPlayer
     instance from the event loop of your window.
 
@@ -110,5 +110,5 @@ class VideoPlayer(OTGuiElement):
 
 
 if __name__ == "__main__":
-    video_player = VideoPlayer(title="My first video player")
+    video_player = OTVideoPlayer(title="My first video player")
     video_player.create_window()
