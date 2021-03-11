@@ -1,5 +1,5 @@
-# OTVision: Python module containing own custom classes as frames into
-# PySimpleGui windows and interact with them.
+# OTVision: Python module containing own custom classes for embeding
+# frames into PySimpleGui windows and interact with them.
 
 # Copyright (C) 2020 OpenTrafficCam Contributors
 # <https://github.com/OpenTrafficCam
